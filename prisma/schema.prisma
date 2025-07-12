@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String?  @unique
+  passwordHash  String?
+  phoneHash     String?
+  credits       Int      @default(20)
+  subscription  String   @default("free") // free, starter, professional, business
+  pushToken     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  numbers       VirtualNumber[]
+  calls         Call[]
+  messages      Message[]
+  transactions  Transaction[]
+  aiSettings    AISettings?
+}
+
+model VirtualNumber {
+  id            String   @id @default(uuid())
+  userId        String
+  number        String   @unique
+  countryCode   String
+  type          String   @default("temporary") // temporary, permanent
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  monthlyRate   Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calls         Call[]
+  messages      Message[]
+  
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Call {
+  id            String   @id @default(uuid())
+  userId        String
+  numberId      String
+  plivoCallId   String   @unique
+  direction     String   // inbound, outbound
+  fromNumber    String
+  toNumber      String
+  duration      Int      @default(0)
+  status        String   // initiated, ringing, answered, completed, failed
+  recordingUrl  String?
+  transcription String?
+  aiSummary     String?
+  cost          Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  number        VirtualNumber @relation(fields: [numberId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([numberId])
+  @@index([createdAt])
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  userId        String
+  numberId      String
+  plivoMessageId String  @unique
+  direction     String   // inbound, outbound
+  fromNumber    String
+  toNumber      String
+  content       String
+  mediaUrls     String[] @default([])
+  status        String   // sent, delivered, failed, received
+  aiReply       String?
+  cost          Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  number        VirtualNumber @relation(fields: [numberId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([numberId])
+  @@index([createdAt])
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // credit_purchase, subscription, number_purchase
+  amount        Float
+  currency      String   @default("USD")
+  status        String   // pending, completed, failed
+  stripeId      String?  @unique
+  description   String
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AISettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  voicemailEnabled  Boolean  @default(true)
+  transcriptionEnabled Boolean @default(true)
+  smartReplyEnabled Boolean  @default(false)
+  autoReplyMessage  String?
+  voiceGreeting     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
