@@ -36,6 +36,12 @@ services:
         sync: false # Set manually in dashboard
       - key: BASE_URL
         value: https://smartline-api.onrender.com # Will update after deploy
+      - key: DEFAULT_VOIP_PROVIDER
+        value: twilio
+      - key: TWILIO_ACCOUNT_SID
+        sync: false # Set manually in dashboard
+      - key: TWILIO_AUTH_TOKEN
+        sync: false # Set manually in dashboard
       - key: STRIPE_SECRET_KEY
         sync: false # Set manually in dashboard
       - key: STRIPE_WEBHOOK_SECRET

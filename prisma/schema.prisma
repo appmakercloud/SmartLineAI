@@ -34,6 +34,8 @@ model VirtualNumber {
   expiresAt     DateTime?
   isActive      Boolean  @default(true)
   monthlyRate   Float    @default(0)
+  provider      String   @default("plivo") // plivo, twilio
+  providerNumberId String? // Store Twilio SID or Plivo ID
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
@@ -43,13 +45,16 @@ model VirtualNumber {
   
   @@index([userId])
   @@index([expiresAt])
+  @@index([provider])
 }
 
 model Call {
   id            String   @id @default(uuid())
   userId        String
   numberId      String
-  plivoCallId   String   @unique
+  plivoCallId   String?  @unique
+  twilioCallSid String?  @unique
+  provider      String   @default("plivo") // plivo, twilio
   direction     String   // inbound, outbound
   fromNumber    String
   toNumber      String
@@ -68,13 +73,16 @@ model Call {
   @@index([userId])
   @@index([numberId])
   @@index([createdAt])
+  @@index([provider])
 }
 
 model Message {
   id            String   @id @default(uuid())
   userId        String
   numberId      String
-  plivoMessageId String  @unique
+  plivoMessageId String? @unique
+  twilioMessageSid String? @unique
+  provider      String   @default("plivo") // plivo, twilio
   direction     String   // inbound, outbound
   fromNumber    String
   toNumber      String
@@ -92,6 +100,7 @@ model Message {
   @@index([userId])
   @@index([numberId])
   @@index([createdAt])
+  @@index([provider])
 }
 
 model Transaction {

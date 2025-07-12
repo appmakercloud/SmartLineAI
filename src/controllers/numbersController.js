@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
-const plivoService = require('../services/plivoService');
+const voipService = require('../services/voipService');
 const { logger } = require('../middleware/logging');
 
 const prisma = new PrismaClient();
@@ -14,9 +14,9 @@ class NumbersController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { country = 'US', type = 'local', pattern } = req.query;
+      const { country = 'US', type = 'local', pattern, provider } = req.query;
       
-      const numbers = await plivoService.searchNumbers(country, type, pattern);
+      const numbers = await voipService.searchNumbers(country, type, pattern, provider);
       
       res.json({
         country,
@@ -58,7 +58,7 @@ class NumbersController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { number } = req.body;
+      const { number, provider } = req.body;
       
       // Check user's subscription and limits
       const user = await prisma.user.findUnique({
@@ -94,7 +94,7 @@ class NumbersController {
       }
       
       // Buy the number
-      const virtualNumber = await plivoService.buyNumber(number, req.userId);
+      const virtualNumber = await voipService.buyNumber(number, req.userId, provider);
       
       // Deduct credits for free users
       if (user.subscription === 'free') {
@@ -144,8 +144,8 @@ class NumbersController {
         return res.status(404).json({ error: 'Number not found' });
       }
       
-      // Release from Plivo
-      await plivoService.releaseNumber(virtualNumber.number, req.userId);
+      // Release from VoIP provider
+      await voipService.releaseNumber(virtualNumber.number, req.userId, virtualNumber.provider);
       
       res.json({ message: 'Number released successfully' });
     } catch (error) {

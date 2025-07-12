@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
-const plivoService = require('../services/plivoService');
+const voipService = require('../services/voipService');
 const { logger } = require('../middleware/logging');
 
 const prisma = new PrismaClient();
@@ -42,8 +42,8 @@ class CallsController {
         });
       }
       
-      // Make the call
-      const callInfo = await plivoService.makeCall(from, to, req.userId);
+      // Make the call using the number's provider
+      const callInfo = await voipService.makeCall(from, to, req.userId, virtualNumber.provider);
       
       res.json({
         message: 'Call initiated',
@@ -149,7 +149,7 @@ class CallsController {
         return res.status(404).json({ error: 'No recording available' });
       }
       
-      const recording = await plivoService.getRecording(callId);
+      const recording = await voipService.getRecording(callId, call.provider);
       
       res.json({ recording });
     } catch (error) {
