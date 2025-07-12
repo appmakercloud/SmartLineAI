@@ -11,8 +11,8 @@ services:
     runtime: node
     plan: free # Can upgrade to starter ($7/month) for always-on
     region: oregon # optional
-    buildCommand: cd backend && npm install && npx prisma generate
-    startCommand: cd backend && node scripts/start.js
+    buildCommand: npm install && npx prisma generate
+    startCommand: node scripts/start.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -60,8 +60,8 @@ services:
     name: smartline-cleanup
     runtime: node
     schedule: "0 2 * * *" # 2 AM daily
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && node scripts/cleanup.js
+    buildCommand: npm install
+    startCommand: node scripts/cleanup.js
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -72,8 +72,8 @@ services:
     name: smartline-expire-numbers
     runtime: node
     schedule: "0 */6 * * *" # Every 6 hours
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && node scripts/expire-numbers.js
+    buildCommand: npm install
+    startCommand: node scripts/expire-numbers.js
     envVars:
       - key: DATABASE_URL
         fromDatabase:
