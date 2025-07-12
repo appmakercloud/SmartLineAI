@@ -1,0 +1,81 @@
+databases:
+  - name: smartline-db
+    databaseName: smartlineai
+    user: smartline
+    plan: free # Upgrades to starter ($7/month) after 90 days
+    region: oregon # optional
+
+services:
+  - type: web
+    name: smartline-api
+    runtime: node
+    plan: free # Can upgrade to starter ($7/month) for always-on
+    region: oregon # optional
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm run migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartline-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smartline-redis
+          property: connectionString
+      - key: PLIVO_AUTH_ID
+        sync: false # Set manually in dashboard
+      - key: PLIVO_AUTH_TOKEN
+        sync: false # Set manually in dashboard
+      - key: PLIVO_APP_ID
+        sync: false # Set manually in dashboard
+      - key: BASE_URL
+        fromService:
+          type: web
+          name: smartline-api
+          property: host
+      - key: STRIPE_SECRET_KEY
+        sync: false # Set manually in dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # Set manually in dashboard
+      - key: OPENAI_API_KEY
+        sync: false # Set manually in dashboard
+      
+  - type: redis
+    name: smartline-redis
+    plan: free # 25MB free, starter is $10/month for 250MB
+    region: oregon # optional
+    maxmemoryPolicy: allkeys-lru
+
+  - type: cron
+    name: smartline-cleanup
+    runtime: node
+    schedule: "0 2 * * *" # 2 AM daily
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node scripts/cleanup.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartline-db
+          property: connectionString
+
+  - type: cron
+    name: smartline-expire-numbers
+    runtime: node
+    schedule: "0 */6 * * *" # Every 6 hours
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node scripts/expire-numbers.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartline-db
+          property: connectionString
+      - key: PLIVO_AUTH_ID
+        sync: false
+      - key: PLIVO_AUTH_TOKEN
+        sync: false
