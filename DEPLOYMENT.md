@@ -6,7 +6,8 @@
 - PostgreSQL database
 - GitHub account
 - Render.com account
-- Plivo account for VoIP services
+- Twilio account for VoIP services (primary)
+- Plivo account for VoIP services (backup/optional)
 - Stripe account for payments
 - OpenAI API key for AI features
 
@@ -22,8 +23,16 @@
    Edit `backend/.env` with your credentials:
    ```
    DATABASE_URL=postgresql://user:password@localhost:5432/smartlineai
+   
+   # Primary VoIP Provider
+   DEFAULT_VOIP_PROVIDER=twilio
+   TWILIO_ACCOUNT_SID=your_twilio_account_sid
+   TWILIO_AUTH_TOKEN=your_twilio_auth_token
+   
+   # Backup VoIP Provider (optional)
    PLIVO_AUTH_ID=your_plivo_auth_id
    PLIVO_AUTH_TOKEN=your_plivo_auth_token
+   
    STRIPE_SECRET_KEY=your_stripe_secret_key
    OPENAI_API_KEY=your_openai_api_key
    ```
@@ -76,15 +85,42 @@
    
    **For smartline-api service:**
    ```
+   # Twilio (Primary)
+   TWILIO_ACCOUNT_SID=your_twilio_account_sid
+   TWILIO_AUTH_TOKEN=your_twilio_auth_token
+   
+   # Plivo (Optional/Backup)
    PLIVO_AUTH_ID=your_plivo_auth_id
    PLIVO_AUTH_TOKEN=your_plivo_auth_token
    PLIVO_APP_ID=your_plivo_app_id
+   
+   # Other Services
    STRIPE_SECRET_KEY=your_stripe_secret_key
    STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
    OPENAI_API_KEY=your_openai_api_key
    ```
 
-### 3. Configure Plivo
+### 3. Configure VoIP Providers
+
+#### Twilio Setup (Primary)
+
+1. **Create Twilio Phone Numbers**
+   - Log in to Twilio Console
+   - Buy phone numbers for your service
+   - Configure each number with webhooks:
+     ```
+     Voice URL: https://smartline-api.onrender.com/webhooks/twilio/voice
+     Voice Method: POST
+     SMS URL: https://smartline-api.onrender.com/webhooks/twilio/sms
+     SMS Method: POST
+     ```
+
+2. **Get Credentials**
+   - Account SID from Dashboard
+   - Auth Token from Dashboard
+   - Update in Render environment variables
+
+#### Plivo Setup (Optional/Backup)
 
 1. **Create Plivo Application**
    - Log in to Plivo Console

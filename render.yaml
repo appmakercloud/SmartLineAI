@@ -11,8 +11,8 @@ services:
     runtime: node
     plan: free # Can upgrade to starter ($7/month) for always-on
     region: oregon # optional
-    buildCommand: cd backend && npm install && npm run build
-    startCommand: cd backend && npm run migrate && npm start
+    buildCommand: cd backend && npm install && npx prisma generate
+    startCommand: cd backend && node scripts/start.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

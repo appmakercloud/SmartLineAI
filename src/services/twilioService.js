@@ -6,14 +6,22 @@ const prisma = new PrismaClient();
 
 class TwilioService {
   constructor() {
-    this.client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+    // Only initialize client if credentials are provided
+    this.client = null;
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      this.client = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+    }
   }
 
   // Search available numbers
   async searchNumbers(countryCode = 'US', type = 'local', pattern = null) {
+    if (!this.client) {
+      throw new Error('Twilio client not configured');
+    }
+    
     try {
       const params = {
         limit: 20

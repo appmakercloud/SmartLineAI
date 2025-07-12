@@ -8,6 +8,11 @@ const prisma = new PrismaClient();
 class WebhookController {
   // Verify Plivo signature
   verifySignature(req) {
+    // Skip verification if Plivo is not configured
+    if (!process.env.PLIVO_AUTH_TOKEN) {
+      return true;
+    }
+    
     const signature = req.headers['x-plivo-signature-v2'];
     const nonce = req.headers['x-plivo-signature-v2-nonce'];
     const url = `${process.env.BASE_URL}${req.originalUrl}`;

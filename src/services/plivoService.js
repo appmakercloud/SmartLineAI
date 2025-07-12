@@ -3,14 +3,23 @@ const { PrismaClient } = require('@prisma/client');
 const { logger } = require('../middleware/logging');
 
 const prisma = new PrismaClient();
-const client = new plivo.Client(
-  process.env.PLIVO_AUTH_ID,
-  process.env.PLIVO_AUTH_TOKEN
-);
+
+// Only initialize client if credentials are provided
+let client = null;
+if (process.env.PLIVO_AUTH_ID && process.env.PLIVO_AUTH_TOKEN) {
+  client = new plivo.Client(
+    process.env.PLIVO_AUTH_ID,
+    process.env.PLIVO_AUTH_TOKEN
+  );
+}
 
 class PlivoService {
   // Search available numbers
   async searchNumbers(countryCode = 'US', type = 'local', pattern = null) {
+    if (!client) {
+      throw new Error('Plivo client not configured');
+    }
+    
     try {
       const params = {
         type: type,
