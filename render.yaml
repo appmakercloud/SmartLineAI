@@ -35,10 +35,7 @@ services:
       - key: PLIVO_APP_ID
         sync: false # Set manually in dashboard
       - key: BASE_URL
-        fromService:
-          type: web
-          name: smartline-api
-          property: host
+        value: https://smartline-api.onrender.com # Will update after deploy
       - key: STRIPE_SECRET_KEY
         sync: false # Set manually in dashboard
       - key: STRIPE_WEBHOOK_SECRET
@@ -51,6 +48,7 @@ services:
     plan: free # 25MB free, starter is $10/month for 250MB
     region: oregon # optional
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # Required, empty array allows all IPs
 
   - type: cron
     name: smartline-cleanup
