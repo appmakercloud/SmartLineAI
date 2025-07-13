@@ -10,8 +10,7 @@
       runs-on: ubuntu-latest
 
       steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.5
@@ -19,7 +18,7 @@
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.PORT }}
+          port: 22
           script: |
             cd /var/www/smartline-api/SmartLineAI
             git pull origin main
@@ -28,6 +27,4 @@
             npx prisma migrate deploy
             pm2 restart smartline-api
             pm2 save
-            echo "Deployment completed successfully"
   EOF
-
