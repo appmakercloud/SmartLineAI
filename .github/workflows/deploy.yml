@@ -17,4 +17,3 @@
             username: ${{ secrets.USERNAME }}
             key: ${{ secrets.SSH_KEY }}
             script: cd /var/www/smartline-api/SmartLineAI && git pull && npm install && pm2 restart smartline-api
-  WORKFLOW_END
