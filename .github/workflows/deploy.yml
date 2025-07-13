@@ -16,4 +16,13 @@
             host: ${{ secrets.HOST }}
             username: ${{ secrets.USERNAME }}
             key: ${{ secrets.SSH_KEY }}
-            script: cd /var/www/smartline-api/SmartLineAI && git pull && npm install && pm2 restart smartline-api
+            script: |
+              sudo chown -R flickmax:flickmax /var/www/smartline-api
+              cd /var/www/smartline-api/SmartLineAI
+              git pull origin main
+              npm install
+              npx prisma generate
+              npx prisma migrate deploy
+              sudo pm2 restart smartline-api
+              sudo pm2 save
+  WORKFLOW_END
