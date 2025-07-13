@@ -1,0 +1,22 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-connection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT || 22 }}
+          script: |
+            echo "SSH connection successful!"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            echo "Home directory: $HOME"
+            ls -la ~/

@@ -1,19 +1,96 @@
-  name: Deploy to Ubuntu Server
+name: Deploy to Ubuntu Server
 
-  on:
-    push:
-      branches:
-        - main
-        - master
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
-  jobs:
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Deploy via SSH
-          uses: appleboy/ssh-action@v0.1.5
-          with:
-            host: ${{ secrets.HOST }}
-            username: ${{ secrets.USERNAME }}
-            key: ${{ secrets.SSH_KEY }}
-            script: bash ~/deploy.sh
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: smartline_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://test:test@localhost:5432/smartline_test
+        REDIS_URL: redis://localhost:6379
+        JWT_SECRET: test-secret
+        JWT_REFRESH_SECRET: test-refresh-secret
+      run: |
+        npx prisma generate
+        npx prisma migrate deploy
+        npm test
+    
+    - name: Run linter
+      run: npm run lint || true
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd /var/www/smartline-api
+          git pull origin main
+          npm install
+          npx prisma generate
+          npx prisma migrate deploy
+          pm2 restart smartline-api
+          pm2 save
+          
+    - name: Check deployment
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          pm2 status smartline-api
+          curl -f http://localhost:3000/health || exit 1
