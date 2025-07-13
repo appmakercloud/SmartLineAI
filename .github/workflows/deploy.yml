@@ -28,7 +28,6 @@
             npx prisma migrate deploy
             pm2 restart smartline-api
             pm2 save
-            echo "Deployment completed at $(date)"
+            echo "Deployment completed successfully"
   EOF
-
 
