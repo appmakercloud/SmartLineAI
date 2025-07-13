@@ -21,8 +21,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init, openssl for Prisma, and curl for healthcheck
+RUN apk add --no-cache dumb-init openssl curl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start script that handles migrations and starts the app
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/app.js"]
