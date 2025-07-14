@@ -72,12 +72,22 @@ class SubscriptionController {
       });
     } catch (error) {
       logger.error('Subscribe error:', error);
+      logger.error('Subscribe error details:', {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        stack: error.stack
+      });
       
       if (error.type === 'StripeCardError') {
         return res.status(400).json({ error: 'Payment failed: ' + error.message });
       }
       
-      res.status(500).json({ error: 'Failed to subscribe' });
+      res.status(500).json({ 
+        error: 'Failed to subscribe',
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
 

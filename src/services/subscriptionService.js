@@ -116,6 +116,11 @@ class SubscriptionService {
     }
 
     try {
+      // Check if Stripe is configured
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('Stripe is not configured. Please add STRIPE_SECRET_KEY to environment variables.');
+      }
+
       // Create or get Stripe customer
       let stripeCustomerId = user.stripeCustomerId;
       if (!stripeCustomerId) {
@@ -133,14 +138,21 @@ class SubscriptionService {
 
       // Handle test payment methods differently
       if (paymentMethodId === 'pm_card_visa' || paymentMethodId.startsWith('pm_card_')) {
-        // For predefined test payment methods, create a new one using the test token
-        const newPaymentMethod = await stripe.paymentMethods.create({
-          type: 'card',
-          card: {
-            token: 'tok_visa' // Use Stripe's test token
-          }
-        });
-        paymentMethodId = newPaymentMethod.id;
+        logger.info('Creating test payment method from token');
+        try {
+          // For predefined test payment methods, create a new one using the test token
+          const newPaymentMethod = await stripe.paymentMethods.create({
+            type: 'card',
+            card: {
+              token: 'tok_visa' // Use Stripe's test token
+            }
+          });
+          paymentMethodId = newPaymentMethod.id;
+          logger.info('Created test payment method:', paymentMethodId);
+        } catch (pmError) {
+          logger.error('Failed to create test payment method:', pmError);
+          throw pmError;
+        }
       }
 
       // Attach payment method
