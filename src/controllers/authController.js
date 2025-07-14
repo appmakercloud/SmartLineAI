@@ -234,7 +234,7 @@ class AuthController {
       });
       
       logger.info(`Push token updated for user ${req.userId}`);
-      res.json({ success: true });
+      res.json({ success: true, message: 'Push token updated successfully' });
     } catch (error) {
       logger.error('Push token update error:', error);
       res.status(500).json({ error: 'Failed to update push token' });
