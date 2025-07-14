@@ -265,7 +265,7 @@ const authController = new AuthController();
 // Bind all methods
 authController.register = authController.register.bind(authController);
 authController.login = authController.login.bind(authController);
-authController.refresh = authController.refresh.bind(authController);
+authController.refreshToken = authController.refreshToken.bind(authController);
 authController.getMe = authController.getMe.bind(authController);
 authController.updatePushToken = authController.updatePushToken.bind(authController);
 authController.generateAccessToken = authController.generateAccessToken.bind(authController);
