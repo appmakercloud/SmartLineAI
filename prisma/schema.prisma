@@ -16,6 +16,12 @@ model User {
   subscription  String   @default("free") // free, starter, professional, business
   pushToken     String?
   
+  // Stripe fields
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  subscriptionStatus   String?
+  
   // Free trial fields
   freeTrialStartsAt DateTime?
   freeTrialEndsAt   DateTime?
