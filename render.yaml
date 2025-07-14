@@ -3,17 +3,98 @@ databases:
     databaseName: smartlineai
     user: smartline
     plan: free # Upgrades to starter ($7/month) after 90 days
-    region: oregon # optional
+    region: oregon
+    ipAllowList: # Allow connections from Render services
+      - source: 0.0.0.0/0
+        description: Allow all connections
 
 services:
   - type: web
     name: smartline-api
     runtime: node
     plan: free # Can upgrade to starter ($7/month) for always-on
-    region: oregon # optional
+    region: oregon
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: node src/app.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartline-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smartline-redis
+          property: connectionString
+      # VoIP Providers
+      - key: DEFAULT_VOIP_PROVIDER
+        value: twilio
+      - key: PLIVO_AUTH_ID
+        sync: false # Set manually in dashboard
+      - key: PLIVO_AUTH_TOKEN
+        sync: false # Set manually in dashboard
+      - key: PLIVO_APP_ID
+        sync: false # Set manually in dashboard
+      - key: TWILIO_ACCOUNT_SID
+        sync: false # Set manually in dashboard
+      - key: TWILIO_AUTH_TOKEN
+        sync: false # Set manually in dashboard
+      - key: TWILIO_APP_SID
+        sync: false # Set manually in dashboard
+      # Stripe Configuration
+      - key: STRIPE_SECRET_KEY
+        sync: false # Set manually in dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # Set manually in dashboard
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false # Set manually in dashboard
+      # OpenAI Configuration
+      - key: OPENAI_API_KEY
+        sync: false # Set manually in dashboard
+      # Application URLs
+      - key: BASE_URL
+        value: https://smartline-api.onrender.com
+      - key: FRONTEND_URL
+        value: https://smartlineai.com
+      # Security
+      - key: CORS_ORIGIN
+        value: https://smartlineai.com,https://app.smartlineai.com
+      # Email Configuration (optional)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: noreply@smartlineai.com
+      
+  - type: redis
+    name: smartline-redis
+    plan: free # 25MB free, starter is $10/month for 250MB
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # Empty array allows all IPs
+
+  # Background worker for processing tasks
+  - type: worker
+    name: smartline-worker
+    runtime: node
+    plan: free
+    region: oregon
     buildCommand: npm install && npx prisma generate
-    startCommand: node scripts/start.js
-    healthCheckPath: /health
+    startCommand: node src/services/cronService.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -21,60 +102,45 @@ services:
         fromDatabase:
           name: smartline-db
           property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
       - key: REDIS_URL
         fromService:
           type: redis
           name: smartline-redis
           property: connectionString
       - key: PLIVO_AUTH_ID
-        sync: false # Set manually in dashboard
+        sync: false
       - key: PLIVO_AUTH_TOKEN
-        sync: false # Set manually in dashboard
-      - key: PLIVO_APP_ID
-        sync: false # Set manually in dashboard
-      - key: BASE_URL
-        value: https://smartline-api.onrender.com # Will update after deploy
-      - key: DEFAULT_VOIP_PROVIDER
-        value: twilio
+        sync: false
       - key: TWILIO_ACCOUNT_SID
-        sync: false # Set manually in dashboard
+        sync: false
       - key: TWILIO_AUTH_TOKEN
-        sync: false # Set manually in dashboard
-      - key: STRIPE_SECRET_KEY
-        sync: false # Set manually in dashboard
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false # Set manually in dashboard
-      - key: OPENAI_API_KEY
-        sync: false # Set manually in dashboard
-      
-  - type: redis
-    name: smartline-redis
-    plan: free # 25MB free, starter is $10/month for 250MB
-    region: oregon # optional
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: [] # Required, empty array allows all IPs
+        sync: false
 
+  # Cron job for daily cleanup
   - type: cron
     name: smartline-cleanup
     runtime: node
-    schedule: "0 2 * * *" # 2 AM daily
-    buildCommand: npm install
+    schedule: "0 2 * * *" # 2 AM daily UTC
+    buildCommand: npm install && npx prisma generate
     startCommand: node scripts/cleanup.js
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
         fromDatabase:
           name: smartline-db
           property: connectionString
 
+  # Cron job for expiring temporary numbers
   - type: cron
     name: smartline-expire-numbers
     runtime: node
     schedule: "0 */6 * * *" # Every 6 hours
-    buildCommand: npm install
+    buildCommand: npm install && npx prisma generate
     startCommand: node scripts/expire-numbers.js
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
         fromDatabase:
           name: smartline-db
@@ -82,4 +148,8 @@ services:
       - key: PLIVO_AUTH_ID
         sync: false
       - key: PLIVO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
         sync: false

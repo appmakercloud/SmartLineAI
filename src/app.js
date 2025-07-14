@@ -48,13 +48,24 @@ const strictLimiter = rateLimit({
   message: 'Too many attempts, please try again later.'
 });
 
-// Health check endpoint
+// Health check endpoints
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'SmartLine AI',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
+  });
+});
+
+// Render.com expects health check at /api/health
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    service: 'SmartLine AI',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime()
   });
 });
 
