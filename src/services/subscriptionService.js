@@ -78,6 +78,37 @@ class SubscriptionService {
       throw new Error('Invalid plan');
     }
 
+    // Temporary bypass for testing without Stripe products
+    if (process.env.BYPASS_STRIPE === 'true') {
+      logger.info('Bypassing Stripe for testing');
+      
+      const subscription = await prisma.userSubscription.create({
+        data: {
+          userId,
+          planId,
+          status: 'active',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          stripeSubscriptionId: `sub_test_${Date.now()}`,
+          stripePriceId: `price_test_${planId}`
+        }
+      });
+      
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          subscription: planId,
+          subscriptionStatus: 'active',
+          stripeCustomerId: `cus_test_${Date.now()}`,
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          stripePriceId: subscription.stripePriceId
+        }
+      });
+      
+      logger.info(`User ${userId} subscribed to ${planId} plan (test mode)`);
+      return subscription;
+    }
+
     // Check for existing active subscription
     const existingSubscription = await this.getCurrentSubscription(userId);
     if (existingSubscription) {
