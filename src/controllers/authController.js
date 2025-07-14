@@ -259,4 +259,16 @@ class AuthController {
   }
 }
 
-module.exports = new AuthController();
+// Create instance and bind methods to preserve 'this' context
+const authController = new AuthController();
+
+// Bind all methods
+authController.register = authController.register.bind(authController);
+authController.login = authController.login.bind(authController);
+authController.refresh = authController.refresh.bind(authController);
+authController.getMe = authController.getMe.bind(authController);
+authController.updatePushToken = authController.updatePushToken.bind(authController);
+authController.generateAccessToken = authController.generateAccessToken.bind(authController);
+authController.generateRefreshToken = authController.generateRefreshToken.bind(authController);
+
+module.exports = authController;

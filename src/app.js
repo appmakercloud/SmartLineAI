@@ -19,8 +19,8 @@ const usageRoutes = require('./routes/usage');
 
 const app = express();
 
-// Trust proxy for Render.com
-app.set('trust proxy', true);
+// Trust proxy for Render.com (specific number for security)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -38,17 +38,32 @@ app.use(express.urlencoded({ extended: true }));
 // Request logging
 app.use(requestLogger);
 
-// Rate limiting
+// Rate limiting with Render-specific configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting in development
+  skip: (req) => process.env.NODE_ENV === 'development',
+  // Use custom key generator for Render
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header from Render's proxy
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  }
 });
 
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: 'Too many attempts, please try again later.'
+  message: 'Too many attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'development',
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  }
 });
 
 // Health check endpoints
