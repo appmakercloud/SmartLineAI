@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const subscriptionService = require('../services/subscriptionService');
 const { logger } = require('../middleware/logging');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 class SubscriptionController {
   // Get all available plans
