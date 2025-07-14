@@ -45,7 +45,10 @@ class TwilioService {
       // Add area code filter if provided
       if (areaCode) {
         params.areaCode = areaCode;
+        logger.info(`Twilio: Filtering by area code ${areaCode}`);
       }
+      
+      logger.info('Twilio search params:', params);
       
       let numbers;
       if (countryCode === 'US') {
@@ -56,9 +59,14 @@ class TwilioService {
         numbers = await this.client.availablePhoneNumbers('CA').local.list(params);
       }
       
+      logger.info(`Twilio: Found ${numbers.length} numbers`);
+      if (numbers.length > 0) {
+        logger.info(`Twilio: First number: ${numbers[0].phoneNumber}`);
+      }
+      
       // Map to our format
       return numbers.map(number => ({
-        number: number.phoneNumber,
+        phoneNumber: number.phoneNumber,  // Changed from 'number' to 'phoneNumber'
         monthlyRate: 1.15, // Twilio standard rate
         type: type,
         features: {

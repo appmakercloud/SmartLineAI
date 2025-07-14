@@ -37,9 +37,11 @@ class PlivoService {
       
       const response = await client.numbers.search(countryCode, params);
       
+      logger.info(`Plivo: Found ${response.objects.length} numbers`);
+      
       // Map to our format
       return response.objects.map(number => ({
-        number: number.number,
+        phoneNumber: number.number,  // Changed from 'number' to 'phoneNumber'
         monthlyRate: number.monthly_rental_rate,
         type: number.type,
         features: {
