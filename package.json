@@ -31,7 +31,8 @@
     "stripe": "^14.9.0",
     "winston": "^3.11.0",
     "openai": "^4.20.0",
-    "express-validator": "^7.0.1"
+    "express-validator": "^7.0.1",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "prisma": "^5.7.0",

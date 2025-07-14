@@ -15,6 +15,7 @@ const webhookRoutes = require('./routes/webhooks');
 const billingRoutes = require('./routes/billing');
 const aiRoutes = require('./routes/ai');
 const subscriptionRoutes = require('./routes/subscriptions');
+const usageRoutes = require('./routes/usage');
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/usage', usageRoutes);
 
 // Webhook routes (no rate limiting)
 app.use('/webhooks', webhookRoutes);
@@ -87,4 +89,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`SmartLine AI server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV}`);
+  
+  // Start cron jobs
+  const cronService = require('./services/cronService');
+  cronService.start();
 });
