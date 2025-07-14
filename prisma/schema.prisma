@@ -12,9 +12,18 @@ model User {
   email         String?  @unique
   passwordHash  String?
   phoneHash     String?
-  credits       Int      @default(20)
+  credits       Int      @default(0)
   subscription  String   @default("free") // free, starter, professional, business
   pushToken     String?
+  
+  // Free trial fields
+  freeTrialStartsAt DateTime?
+  freeTrialEndsAt   DateTime?
+  freeMinutesUsed   Float    @default(0)
+  freeSmsUsed       Int      @default(0)
+  trialPhoneNumber  String?
+  trialStatus       String   @default("none") // none, active, expired, upgraded
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
