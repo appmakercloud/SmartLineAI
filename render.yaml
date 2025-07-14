@@ -62,7 +62,7 @@ services:
         sync: false # Set manually in dashboard
       # Application URLs
       - key: BASE_URL
-        value: https://smartline-api.onrender.com
+        value: https://smartline-api-pn16.onrender.com
       - key: FRONTEND_URL
         value: https://smartlineai.com
       # Security
