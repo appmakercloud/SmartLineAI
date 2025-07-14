@@ -14,6 +14,7 @@ const messageRoutes = require('./routes/messages');
 const webhookRoutes = require('./routes/webhooks');
 const billingRoutes = require('./routes/billing');
 const aiRoutes = require('./routes/ai');
+const subscriptionRoutes = require('./routes/subscriptions');
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use('/api/calls', callRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Webhook routes (no rate limiting)
 app.use('/webhooks', webhookRoutes);

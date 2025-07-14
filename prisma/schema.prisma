@@ -32,6 +32,8 @@ model User {
   messages      Message[]
   transactions  Transaction[]
   aiSettings    AISettings?
+  subscriptions UserSubscription[]
+  usageHistory  UsageHistory[]
 }
 
 model VirtualNumber {
@@ -142,4 +144,86 @@ model AISettings {
   updatedAt         DateTime @updatedAt
   
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id                      String   @id
+  name                    String
+  displayName             String
+  price                   Float
+  currency                String   @default("USD")
+  interval                String   @default("month")
+  
+  // Limits
+  includedMinutes         Int
+  includedSms             Int
+  includedNumbers         Int
+  pricePerExtraMinute     Float    @default(0.025)
+  pricePerExtraSms        Float    @default(0.01)
+  pricePerExtraNumber     Float    @default(5.0)
+  
+  // Features
+  hasAiFeatures           Boolean  @default(false)
+  hasVoicemailTranscription Boolean @default(false)
+  hasCallRecording        Boolean  @default(false)
+  hasAutoAttendant        Boolean  @default(false)
+  hasAnalytics            Boolean  @default(false)
+  hasApiAccess            Boolean  @default(false)
+  hasCrmIntegration       Boolean  @default(false)
+  hasTeamFeatures         Boolean  @default(false)
+  hasPrioritySupport      Boolean  @default(false)
+  
+  // Metadata
+  isActive                Boolean  @default(true)
+  sortOrder               Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  userSubscriptions       UserSubscription[]
+}
+
+model UserSubscription {
+  id                   String   @id @default(uuid())
+  userId               String
+  planId               String
+  status               String   @default("active") // active, cancelled, expired, past_due
+  
+  // Usage tracking
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  minutesUsed          Float    @default(0)
+  smsUsed              Int      @default(0)
+  
+  // Billing
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  nextBillingDate      DateTime?
+  cancelledAt          DateTime?
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 SubscriptionPlan @relation(fields: [planId], references: [id])
+  usageHistory         UsageHistory[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model UsageHistory {
+  id             String   @id @default(uuid())
+  userId         String
+  subscriptionId String
+  type           String   // call, sms
+  amount         Float    // minutes for calls, count for sms
+  date           DateTime @db.Date
+  createdAt      DateTime @default(now())
+  
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, date])
+  @@index([subscriptionId, date])
 }

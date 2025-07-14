@@ -13,6 +13,7 @@
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "seed": "node prisma/seed.js",
+    "seed:plans": "node prisma/seed-plans.js",
     "test": "jest"
   },
   "dependencies": {
