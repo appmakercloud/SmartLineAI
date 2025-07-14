@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { logger } = require('../middleware/logging');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripeConfig = require('../config/stripe');
 
 const prisma = new PrismaClient();
 
@@ -111,10 +112,16 @@ class SubscriptionService {
         }
       });
 
+      // Get Stripe price ID from config
+      const stripePriceId = stripeConfig.plans[planId]?.priceId;
+      if (!stripePriceId) {
+        throw new Error('Stripe price ID not configured for this plan');
+      }
+
       // Create Stripe subscription
       const stripeSubscription = await stripe.subscriptions.create({
         customer: stripeCustomerId,
-        items: [{ price: plan.stripePriceId }],
+        items: [{ price: stripePriceId }],
         expand: ['latest_invoice.payment_intent']
       });
 
@@ -131,7 +138,7 @@ class SubscriptionService {
           currentPeriodStart,
           currentPeriodEnd,
           stripeSubscriptionId: stripeSubscription.id,
-          stripePriceId: plan.stripePriceId,
+          stripePriceId: stripePriceId,
           nextBillingDate: currentPeriodEnd
         }
       });

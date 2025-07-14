@@ -162,6 +162,10 @@ model SubscriptionPlan {
   pricePerExtraSms        Float    @default(0.01)
   pricePerExtraNumber     Float    @default(5.0)
   
+  // Stripe integration
+  stripeProductId         String?
+  stripePriceId           String?
+  
   // Features
   hasAiFeatures           Boolean  @default(false)
   hasVoicemailTranscription Boolean @default(false)
