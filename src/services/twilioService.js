@@ -17,7 +17,7 @@ class TwilioService {
   }
 
   // Search available numbers
-  async searchNumbers(countryCode = 'US', type = 'local', pattern = null) {
+  async searchNumbers(countryCode = 'US', type = 'local', pattern = null, areaCode = null) {
     if (!this.client) {
       throw new Error('Twilio client not configured');
     }
@@ -40,6 +40,11 @@ class TwilioService {
       
       if (pattern) {
         params.contains = pattern;
+      }
+      
+      // Add area code filter if provided
+      if (areaCode) {
+        params.areaCode = areaCode;
       }
       
       let numbers;

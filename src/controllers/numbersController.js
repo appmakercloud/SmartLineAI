@@ -14,14 +14,14 @@ class NumbersController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { country = 'US', type = 'local', pattern, provider } = req.query;
+      const { country = 'US', type = 'local', pattern, areaCode, provider } = req.query;
       
-      const numbers = await voipService.searchNumbers(country, type, pattern, provider);
+      const numbers = await voipService.searchNumbers(country, type, pattern, areaCode, provider);
       
       res.json({
         country,
         type,
-        available: numbers.length,
+        total: numbers.length,
         numbers: numbers.slice(0, 20) // Limit to 20 results
       });
     } catch (error) {

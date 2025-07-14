@@ -32,13 +32,13 @@ class VoIPService {
   }
 
   // Search available numbers from preferred provider
-  async searchNumbers(countryCode = 'US', type = 'local', pattern = null, provider = null) {
+  async searchNumbers(countryCode = 'US', type = 'local', pattern = null, areaCode = null, provider = null) {
     const service = this.getService(provider);
     const providerName = provider || this.defaultProvider;
     
     try {
-      logger.info(`Searching numbers using ${providerName}`);
-      const numbers = await service.searchNumbers(countryCode, type, pattern);
+      logger.info(`Searching numbers using ${providerName}`, { countryCode, type, pattern, areaCode });
+      const numbers = await service.searchNumbers(countryCode, type, pattern, areaCode);
       
       // Add provider info to results
       return numbers.map(num => ({
@@ -53,7 +53,7 @@ class VoIPService {
       const alternateService = this.getService(alternateProvider);
       
       try {
-        const numbers = await alternateService.searchNumbers(countryCode, type, pattern);
+        const numbers = await alternateService.searchNumbers(countryCode, type, pattern, areaCode);
         return numbers.map(num => ({
           ...num,
           provider: alternateProvider

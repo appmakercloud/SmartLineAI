@@ -15,7 +15,7 @@ if (process.env.PLIVO_AUTH_ID && process.env.PLIVO_AUTH_TOKEN) {
 
 class PlivoService {
   // Search available numbers
-  async searchNumbers(countryCode = 'US', type = 'local', pattern = null) {
+  async searchNumbers(countryCode = 'US', type = 'local', pattern = null, areaCode = null) {
     if (!client) {
       throw new Error('Plivo client not configured');
     }
@@ -28,6 +28,11 @@ class PlivoService {
       
       if (pattern) {
         params.pattern = pattern;
+      }
+      
+      // Add area code filter if provided (Plivo uses 'region' parameter)
+      if (areaCode) {
+        params.region = areaCode;
       }
       
       const response = await client.numbers.search(countryCode, params);

@@ -12,7 +12,8 @@ router.use(authenticate);
 router.get('/search', [
   query('country').optional().isIn(['US', 'CA', 'GB']).withMessage('Invalid country code'),
   query('type').optional().isIn(['local', 'tollfree', 'mobile']).withMessage('Invalid number type'),
-  query('pattern').optional().isString().withMessage('Invalid pattern')
+  query('pattern').optional().isString().withMessage('Invalid pattern'),
+  query('areaCode').optional().isString().isLength({ min: 3, max: 3 }).withMessage('Area code must be 3 digits')
 ], numbersController.searchNumbers);
 
 // Get user's numbers
