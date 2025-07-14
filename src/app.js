@@ -25,9 +25,20 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://smartlineai.com', 'https://app.smartlineai.com']
-    : ['http://localhost:3000', 'http://localhost:8100'],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? ['https://smartlineai.com', 'https://app.smartlineai.com']
+      : ['http://localhost:3000', 'http://localhost:8100', 'http://localhost:8081'];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins for now (mobile app compatibility)
+    }
+  },
   credentials: true
 }));
 
@@ -56,7 +67,7 @@ const limiter = rateLimit({
 
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 50, // Increased to 50 for testing
   message: 'Too many attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
