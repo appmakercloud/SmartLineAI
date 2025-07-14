@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const { logger } = require('../middleware/logging');
 
 // Create a test payment method for development
-router.post('/create-test-payment-method', auth, async (req, res) => {
+router.post('/create-test-payment-method', authenticate, async (req, res) => {
   try {
     // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
