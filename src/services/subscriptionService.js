@@ -100,6 +100,18 @@ class SubscriptionService {
         });
       }
 
+      // Handle test payment methods differently
+      if (paymentMethodId === 'pm_card_visa' || paymentMethodId.startsWith('pm_card_')) {
+        // For predefined test payment methods, create a new one using the test token
+        const newPaymentMethod = await stripe.paymentMethods.create({
+          type: 'card',
+          card: {
+            token: 'tok_visa' // Use Stripe's test token
+          }
+        });
+        paymentMethodId = newPaymentMethod.id;
+      }
+
       // Attach payment method
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: stripeCustomerId
