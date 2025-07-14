@@ -19,6 +19,9 @@ const usageRoutes = require('./routes/usage');
 
 const app = express();
 
+// Trust proxy for Render.com
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
