@@ -7,16 +7,16 @@ const stripeConfig = {
       priceId: process.env.STRIPE_PRICE_FREE || 'price_free_trial'
     },
     starter: {
-      productId: 'prod_SfzM0Is3Ih667I',
-      priceId: process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly'
+      productId: process.env.STRIPE_PRODUCT_ID_STARTER || 'prod_RQCqfmJV2jxqor',
+      priceId: process.env.STRIPE_PRICE_ID_STARTER || 'price_1QVzwQRwI9tctJBu5lHmp2w4'
     },
     professional: {
-      productId: 'prod_SfzOf9cmSnqb9j',
-      priceId: process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly'
+      productId: process.env.STRIPE_PRODUCT_ID_PROFESSIONAL || 'prod_RQCqiOJyHdgmbx',
+      priceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL || 'price_1QVzxjRwI9tctJBuEOqQJQvl'
     },
     business: {
-      productId: 'prod_SfzQFQ3a5HtkSW',
-      priceId: process.env.STRIPE_PRICE_BUSINESS || 'price_business_monthly'
+      productId: process.env.STRIPE_PRODUCT_ID_BUSINESS || 'prod_RQCqkZxlnBNnQb',
+      priceId: process.env.STRIPE_PRICE_ID_BUSINESS || 'price_1QVzyTRwI9tctJBuPsHNXOYA'
     },
     enterprise: {
       productId: 'prod_SfzRZU37WDjZMa',
