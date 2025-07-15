@@ -246,8 +246,8 @@ class SubscriptionService {
       throw new Error('Invalid plan');
     }
 
-    const stripeConfig = stripeConfigFile.plans[newPlanId];
-    if (!stripeConfig) {
+    const stripePlanConfig = stripeConfig.plans[newPlanId];
+    if (!stripePlanConfig) {
       throw new Error('Plan not configured in Stripe');
     }
 
@@ -296,7 +296,7 @@ class SubscriptionService {
           {
             items: [{
               id: (await stripe.subscriptions.retrieve(currentSubscription.stripeSubscriptionId)).items.data[0].id,
-              price: stripeConfig.priceId
+              price: stripePlanConfig.priceId
             }],
             proration_behavior: 'create_prorations'
           }
@@ -307,7 +307,7 @@ class SubscriptionService {
           where: { id: currentSubscription.id },
           data: {
             planId: newPlanId,
-            stripePriceId: stripeConfig.priceId,
+            stripePriceId: stripePlanConfig.priceId,
             updatedAt: new Date()
           },
           include: {
@@ -320,7 +320,7 @@ class SubscriptionService {
           where: { id: userId },
           data: { 
             subscription: newPlanId,
-            stripePriceId: stripeConfig.priceId
+            stripePriceId: stripePlanConfig.priceId
           }
         });
 
