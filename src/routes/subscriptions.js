@@ -34,6 +34,14 @@ router.post('/checkout-session', [
   body('planId').isIn(['starter', 'professional', 'business', 'enterprise']).withMessage('Invalid plan')
 ], subscriptionController.createCheckoutSession);
 
+// Create payment intent
+router.post('/payment-intent', [
+  body('planId').isIn(['starter', 'professional', 'business', 'enterprise']).withMessage('Invalid plan')
+], subscriptionController.createPaymentIntent);
+
+// Create setup intent (for saving payment methods)
+router.post('/setup-intent', subscriptionController.createSetupIntent);
+
 // Cancel subscription
 router.post('/cancel', subscriptionController.cancelSubscription);
 

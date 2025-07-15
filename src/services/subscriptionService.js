@@ -510,6 +510,129 @@ class SubscriptionService {
     }
   }
 
+  // Create Payment Intent for subscription
+  async createPaymentIntent(userId, planId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    const plan = await this.getPlan(planId);
+    if (!plan) {
+      throw new Error('Invalid plan');
+    }
+
+    try {
+      // Check if Stripe is configured
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('Stripe is not configured');
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user.id }
+        });
+        stripeCustomerId = customer.id;
+        
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId }
+        });
+      }
+
+      // Create ephemeral key for customer
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: stripeCustomerId },
+        { apiVersion: '2023-10-16' }
+      );
+
+      // Get Stripe price ID from config
+      const stripePriceId = stripeConfig.plans[planId]?.priceId;
+      if (!stripePriceId) {
+        throw new Error('Stripe price ID not configured for this plan');
+      }
+
+      // Calculate the amount for payment intent
+      const amount = Math.round(plan.price * 100); // Convert to cents
+
+      // Create payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: plan.currency.toLowerCase(),
+        customer: stripeCustomerId,
+        setup_future_usage: 'off_session',
+        metadata: {
+          userId,
+          planId
+        }
+      });
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        customerId: stripeCustomerId,
+        customerEphemeralKey: ephemeralKey.secret
+      };
+    } catch (error) {
+      logger.error('Create payment intent error:', error);
+      throw error;
+    }
+  }
+
+  // Create Setup Intent for saving payment methods
+  async createSetupIntent(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    try {
+      // Check if Stripe is configured
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('Stripe is not configured');
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user.id }
+        });
+        stripeCustomerId = customer.id;
+        
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId }
+        });
+      }
+
+      // Create ephemeral key for customer
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: stripeCustomerId },
+        { apiVersion: '2023-10-16' }
+      );
+
+      // Create setup intent
+      const setupIntent = await stripe.setupIntents.create({
+        customer: stripeCustomerId,
+        usage: 'off_session',
+        metadata: {
+          userId
+        }
+      });
+
+      return {
+        clientSecret: setupIntent.client_secret,
+        customerId: stripeCustomerId,
+        customerEphemeralKey: ephemeralKey.secret
+      };
+    } catch (error) {
+      logger.error('Create setup intent error:', error);
+      throw error;
+    }
+  }
+
   // Expire trials (run via cron job)
   async expireTrials() {
     const now = new Date();
@@ -615,6 +738,64 @@ class SubscriptionService {
   }
 
   // Handle checkout completion from webhook
+  // Handle payment intent success
+  async handlePaymentIntentSuccess(userId, planId, paymentIntentId) {
+    try {
+      const plan = await this.getPlan(planId);
+      if (!plan) {
+        throw new Error('Invalid plan');
+      }
+
+      // Create subscription using the saved payment method
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      // Create Stripe subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: user.stripeCustomerId,
+        items: [{ price: stripeConfig.plans[planId].priceId }],
+        default_payment_method: paymentIntent.payment_method,
+        metadata: {
+          userId,
+          planId
+        }
+      });
+
+      // Create local subscription record
+      const newSubscription = await prisma.subscription.create({
+        data: {
+          userId,
+          planId,
+          status: 'active',
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          minutesUsed: 0,
+          smsUsed: 0,
+          stripeSubscriptionId: subscription.id,
+          stripePriceId: subscription.items.data[0].price.id
+        }
+      });
+
+      // Update user subscription status
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          subscription: planId,
+          trialStatus: 'none'
+        }
+      });
+
+      logger.info(`Created subscription for user ${userId} with plan ${planId}`);
+      return newSubscription;
+    } catch (error) {
+      logger.error('Handle payment intent success error:', error);
+      throw error;
+    }
+  }
+
   async handleCheckoutComplete(userId, planId, stripeSubscriptionId, stripePriceId) {
     try {
       // Check for existing subscription to upgrade

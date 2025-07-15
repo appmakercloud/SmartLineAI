@@ -140,6 +140,51 @@ class SubscriptionController {
     }
   }
 
+  // Create Payment Intent for subscription
+  async createPaymentIntent(req, res) {
+    try {
+      const { planId } = req.body;
+      
+      const result = await subscriptionService.createPaymentIntent(
+        req.userId,
+        planId
+      );
+      
+      res.json({
+        clientSecret: result.clientSecret,
+        customerId: result.customerId,
+        customerEphemeralKey: result.customerEphemeralKey,
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+      });
+    } catch (error) {
+      logger.error('Create payment intent error:', error);
+      res.status(500).json({ 
+        error: 'Failed to create payment intent',
+        message: error.message
+      });
+    }
+  }
+  
+  // Create Setup Intent for saving payment methods
+  async createSetupIntent(req, res) {
+    try {
+      const result = await subscriptionService.createSetupIntent(req.userId);
+      
+      res.json({
+        clientSecret: result.clientSecret,
+        customerId: result.customerId,
+        customerEphemeralKey: result.customerEphemeralKey,
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+      });
+    } catch (error) {
+      logger.error('Create setup intent error:', error);
+      res.status(500).json({ 
+        error: 'Failed to create setup intent',
+        message: error.message
+      });
+    }
+  }
+
   // Webhook for Stripe events
   async handleStripeWebhook(req, res) {
     const sig = req.headers['stripe-signature'];
@@ -195,6 +240,21 @@ class SubscriptionController {
         // Handle subscription cancellation
         logger.info('Subscription cancelled:', event.data.object);
         // TODO: Update local database
+        break;
+        
+      case 'payment_intent.succeeded':
+        // Handle successful payment intent (for one-time payments)
+        const paymentIntent = event.data.object;
+        logger.info('Payment intent succeeded:', paymentIntent);
+        
+        if (paymentIntent.metadata && paymentIntent.metadata.userId && paymentIntent.metadata.planId) {
+          // Create subscription after successful payment
+          await subscriptionService.handlePaymentIntentSuccess(
+            paymentIntent.metadata.userId,
+            paymentIntent.metadata.planId,
+            paymentIntent.id
+          );
+        }
         break;
         
       default:
