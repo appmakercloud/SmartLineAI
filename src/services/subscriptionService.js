@@ -91,6 +91,9 @@ class SubscriptionService {
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           stripeSubscriptionId: `sub_test_${Date.now()}`,
           stripePriceId: `price_test_${planId}`
+        },
+        include: {
+          plan: true
         }
       });
       
@@ -196,6 +199,9 @@ class SubscriptionService {
           stripeSubscriptionId: stripeSubscription.id,
           stripePriceId: stripePriceId,
           nextBillingDate: currentPeriodEnd
+        },
+        include: {
+          plan: true
         }
       });
 
@@ -256,6 +262,9 @@ class SubscriptionService {
           planId: newPlanId,
           stripePriceId: `price_test_${newPlanId}`,
           updatedAt: new Date()
+        },
+        include: {
+          plan: true
         }
       });
       
@@ -300,6 +309,9 @@ class SubscriptionService {
             planId: newPlanId,
             stripePriceId: stripeConfig.priceId,
             updatedAt: new Date()
+          },
+          include: {
+            plan: true
           }
         });
 
