@@ -68,7 +68,48 @@ class SubscriptionService {
   }
 
   // Subscribe to a plan
-  async subscribeToPlan(userId, planId, paymentMethodId) {\n    // Special handling for payment already completed via PaymentSheet\n    if (paymentMethodId === 'pm_stripe_success' || paymentMethodId === 'payment_completed') {\n      logger.info('Payment already completed via PaymentSheet, creating subscription directly');\n      \n      const plan = await this.getPlan(planId);\n      if (!plan) {\n        throw new Error('Invalid plan');\n      }\n      \n      // Create subscription record directly\n      const subscription = await prisma.userSubscription.create({\n        data: {\n          userId,\n          planId,\n          status: 'active',\n          currentPeriodStart: new Date(),\n          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days\n          minutesUsed: 0,\n          smsUsed: 0,\n          stripeSubscriptionId: `sub_manual_${Date.now()}`,\n          stripePriceId: stripeConfig.plans[planId]?.priceId || `price_${planId}`\n        },\n        include: {\n          plan: true\n        }\n      });\n      \n      // Update user subscription status\n      await prisma.user.update({\n        where: { id: userId },\n        data: {\n          subscription: planId,\n          trialStatus: 'none'\n        }\n      });\n      \n      logger.info(`Created subscription for user ${userId} after PaymentSheet payment`);\n      return subscription;\n    }
+  async subscribeToPlan(userId, planId, paymentMethodId) {
+    // Special handling for payment already completed via PaymentSheet
+    if (paymentMethodId === 'pm_stripe_success' || paymentMethodId === 'payment_completed') {
+      logger.info('Payment already completed via PaymentSheet, creating subscription directly');
+      
+      const plan = await this.getPlan(planId);
+      if (!plan) {
+        throw new Error('Invalid plan');
+      }
+      
+      // Create subscription record directly
+      const subscription = await prisma.userSubscription.create({
+        data: {
+          userId,
+          planId,
+          status: 'active',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          minutesUsed: 0,
+          smsUsed: 0,
+          stripeSubscriptionId: `sub_manual_${Date.now()}`,
+          stripePriceId: stripeConfig.plans[planId]?.priceId || `price_${planId}`
+        },
+        include: {
+          plan: true
+        }
+      });
+      
+      // Update user subscription status
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          subscription: planId,
+          trialStatus: 'none'
+        }
+      });
+      
+      logger.info(`Created subscription for user ${userId} after PaymentSheet payment`);
+      return subscription;
+    }
+    
+    // Continue with normal flow for other payment methods
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });

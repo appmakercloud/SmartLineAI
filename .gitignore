@@ -18,3 +18,4 @@ coverage/
 prisma/migrations/dev/
 .vercel
 .render
+ALL_PROJECT_DOCUMENTATION.md
