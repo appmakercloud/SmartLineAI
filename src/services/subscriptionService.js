@@ -644,7 +644,7 @@ class SubscriptionService {
       // Create ephemeral key for customer
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: stripeCustomerId },
-        { apiVersion: '2023-10-16' }
+        { apiVersion: '2024-11-20.acacia' }
       );
 
       // Get Stripe price ID from config
@@ -714,7 +714,7 @@ class SubscriptionService {
       // Create ephemeral key for customer
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: stripeCustomerId },
-        { apiVersion: '2023-10-16' }
+        { apiVersion: '2024-11-20.acacia' }
       );
 
       // Create setup intent
