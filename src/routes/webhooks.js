@@ -24,6 +24,10 @@ router.post('/twilio/sms', twilioWebhookController.handleIncomingSMS);
 router.post('/twilio/sms-status', twilioWebhookController.handleSMSStatus);
 router.post('/twilio/recording-status', twilioWebhookController.handleRecordingStatus);
 
+// Twilio Voice SDK webhooks
+router.post('/twilio/voice-sdk', twilioWebhookController.handleVoiceWebhook);
+router.post('/twilio/voice-sdk-status', twilioWebhookController.handleVoiceStatusCallback);
+
 // Stripe webhooks
 router.post('/stripe', express.raw({ type: 'application/json' }), require('../controllers/billingController').handleStripeWebhook);
 

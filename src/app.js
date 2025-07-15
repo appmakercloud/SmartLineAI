@@ -16,6 +16,7 @@ const billingRoutes = require('./routes/billing');
 const aiRoutes = require('./routes/ai');
 const subscriptionRoutes = require('./routes/subscriptions');
 const usageRoutes = require('./routes/usage');
+const twilioRoutes = require('./routes/twilio');
 // const stripeTestRoutes = require('./routes/stripe-test');
 
 const app = express();
@@ -116,6 +117,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/usage', usageRoutes);
+app.use('/api/twilio', twilioRoutes);
 // app.use('/api/stripe-test', stripeTestRoutes);
 
 // Webhook routes (no rate limiting)

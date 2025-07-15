@@ -305,6 +305,92 @@ class TwilioWebhookController {
       res.status(500).send('Error');
     }
   }
+
+  // Handle voice webhook for Twilio Voice SDK
+  async handleVoiceWebhook(req, res) {
+    try {
+      const twiml = new twilio.twiml.VoiceResponse();
+      
+      const { To, From, CallSid, Direction } = req.body;
+      
+      logger.info('Handling voice webhook for SDK', { To, From, CallSid, Direction });
+      
+      // For outgoing calls from the iOS app
+      if (To && To !== From && Direction === 'outbound-api') {
+        const dial = twiml.dial({
+          callerId: From,
+          timeout: 30,
+          record: 'record-from-answer-dual',
+          recordingStatusCallback: `${process.env.BASE_URL}/webhooks/twilio/recording-status`
+        });
+        
+        dial.number(To);
+        
+        logger.info('Dialing number via SDK', { From, To });
+      } else if (Direction === 'inbound') {
+        // Handle incoming calls
+        await this.handleIncomingVoice(req, res);
+        return;
+      } else {
+        // Unknown call type
+        twiml.say('Unable to process your call at this time.');
+        twiml.hangup();
+      }
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+    } catch (error) {
+      logger.error('Voice webhook error:', error);
+      
+      const twiml = new twilio.twiml.VoiceResponse();
+      twiml.say('An error occurred processing your call.');
+      twiml.hangup();
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+    }
+  }
+
+  // Handle voice status callbacks from SDK calls
+  async handleVoiceStatusCallback(req, res) {
+    try {
+      const { CallSid, CallStatus, CallDuration, Direction, From, To } = req.body;
+      
+      logger.info('Voice call status update', { 
+        CallSid, 
+        CallStatus, 
+        CallDuration,
+        Direction,
+        From,
+        To
+      });
+      
+      // Update call record in database if it exists
+      if (CallStatus === 'completed' && CallDuration) {
+        try {
+          const updated = await prisma.call.updateMany({
+            where: { twilioCallSid: CallSid },
+            data: { 
+              status: 'completed',
+              duration: parseInt(CallDuration) || 0,
+              endedAt: new Date()
+            }
+          });
+          
+          if (updated.count > 0) {
+            logger.info('Updated call record', { CallSid, duration: CallDuration });
+          }
+        } catch (error) {
+          logger.error('Failed to update call status', error);
+        }
+      }
+      
+      res.sendStatus(200);
+    } catch (error) {
+      logger.error('Voice status callback error:', error);
+      res.sendStatus(500);
+    }
+  }
 }
 
 module.exports = new TwilioWebhookController();
