@@ -521,6 +521,11 @@ class SubscriptionService {
       throw new Error('Invalid plan');
     }
 
+    // For free plans, don't create payment intent
+    if (plan.price === 0) {
+      throw new Error('Cannot create payment intent for free plan. Use trial endpoint instead.');
+    }
+
     try {
       // Check if Stripe is configured
       if (!process.env.STRIPE_SECRET_KEY) {
@@ -556,6 +561,11 @@ class SubscriptionService {
 
       // Calculate the amount for payment intent
       const amount = Math.round(plan.price * 100); // Convert to cents
+      
+      // Ensure amount meets Stripe minimums (50 cents for USD)
+      if (amount < 50) {
+        throw new Error('Amount must be at least $0.50');
+      }
 
       // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({
