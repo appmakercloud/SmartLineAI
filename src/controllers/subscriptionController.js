@@ -113,6 +113,31 @@ class SubscriptionController {
     }
   }
 
+  // Create Stripe Checkout Session
+  async createCheckoutSession(req, res) {
+    try {
+      const { planId, successUrl, cancelUrl } = req.body;
+      
+      const session = await subscriptionService.createCheckoutSession(
+        req.userId,
+        planId,
+        successUrl || 'smartlineai://subscription/success',
+        cancelUrl || 'smartlineai://subscription/cancel'
+      );
+      
+      res.json({
+        sessionId: session.id,
+        url: session.url
+      });
+    } catch (error) {
+      logger.error('Create checkout session error:', error);
+      res.status(500).json({ 
+        error: 'Failed to create checkout session',
+        message: error.message
+      });
+    }
+  }
+
   // Webhook for Stripe events
   async handleStripeWebhook(req, res) {
     const sig = req.headers['stripe-signature'];
@@ -131,6 +156,28 @@ class SubscriptionController {
 
     // Handle the event
     switch (event.type) {
+      case 'checkout.session.completed':
+        // Handle successful checkout
+        const session = event.data.object;
+        logger.info('Checkout completed:', session);
+        
+        if (session.mode === 'subscription' && session.client_reference_id) {
+          const userId = session.client_reference_id;
+          const planId = session.metadata.planId;
+          
+          // Get the subscription details from Stripe
+          const subscription = await stripe.subscriptions.retrieve(session.subscription);
+          
+          // Update local database
+          await subscriptionService.handleCheckoutComplete(
+            userId,
+            planId,
+            subscription.id,
+            subscription.items.data[0].price.id
+          );
+        }
+        break;
+        
       case 'invoice.payment_succeeded':
         // Handle successful payment
         logger.info('Payment succeeded:', event.data.object);

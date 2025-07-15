@@ -29,6 +29,11 @@ router.post('/subscribe', [
   body('paymentMethodId').isString().withMessage('Payment method required')
 ], subscriptionController.subscribe);
 
+// Create checkout session
+router.post('/checkout-session', [
+  body('planId').isIn(['starter', 'professional', 'business', 'enterprise']).withMessage('Invalid plan')
+], subscriptionController.createCheckoutSession);
+
 // Cancel subscription
 router.post('/cancel', subscriptionController.cancelSubscription);
 

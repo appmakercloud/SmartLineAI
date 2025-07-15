@@ -535,6 +535,144 @@ class SubscriptionService {
       logger.info(`Expired trial for user ${user.id}`);
     }
   }
+
+  // Create Stripe Checkout Session
+  async createCheckoutSession(userId, planId, successUrl, cancelUrl) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    const plan = await this.getPlan(planId);
+    if (!plan) {
+      throw new Error('Invalid plan');
+    }
+
+    try {
+      // Check if Stripe is configured
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('Stripe is not configured');
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId }
+        });
+        stripeCustomerId = customer.id;
+        
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId }
+        });
+      }
+
+      // Get Stripe price ID from config
+      const stripePriceId = stripeConfig.plans[planId]?.priceId;
+      if (!stripePriceId) {
+        throw new Error('Stripe price ID not configured for this plan');
+      }
+
+      // Check for existing subscription
+      const existingSubscription = await this.getCurrentSubscription(userId);
+      
+      // Create checkout session
+      const sessionConfig = {
+        customer: stripeCustomerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: stripePriceId,
+          quantity: 1
+        }],
+        mode: existingSubscription ? 'subscription' : 'subscription',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        client_reference_id: userId,
+        metadata: {
+          userId,
+          planId
+        }
+      };
+
+      // If upgrading, set subscription update behavior
+      if (existingSubscription && existingSubscription.stripeSubscriptionId) {
+        sessionConfig.subscription_data = {
+          metadata: {
+            previousSubscriptionId: existingSubscription.stripeSubscriptionId
+          }
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+
+      logger.info(`Created checkout session for user ${userId}, plan ${planId}`);
+      return session;
+    } catch (error) {
+      logger.error('Create checkout session error:', error);
+      throw error;
+    }
+  }
+
+  // Handle checkout completion from webhook
+  async handleCheckoutComplete(userId, planId, stripeSubscriptionId, stripePriceId) {
+    try {
+      // Check for existing subscription to upgrade
+      const existingSubscription = await this.getCurrentSubscription(userId);
+      
+      if (existingSubscription) {
+        // Cancel old Stripe subscription if different
+        if (existingSubscription.stripeSubscriptionId && 
+            existingSubscription.stripeSubscriptionId !== stripeSubscriptionId) {
+          await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+        }
+        
+        // Update existing subscription
+        await prisma.userSubscription.update({
+          where: { id: existingSubscription.id },
+          data: {
+            planId,
+            stripeSubscriptionId,
+            stripePriceId,
+            status: 'active',
+            updatedAt: new Date()
+          }
+        });
+      } else {
+        // Create new subscription record
+        const currentPeriodStart = new Date();
+        const currentPeriodEnd = new Date();
+        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+        
+        await prisma.userSubscription.create({
+          data: {
+            userId,
+            planId,
+            status: 'active',
+            currentPeriodStart,
+            currentPeriodEnd,
+            stripeSubscriptionId,
+            stripePriceId,
+            nextBillingDate: currentPeriodEnd
+          }
+        });
+      }
+      
+      // Update user record
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          subscription: planId,
+          subscriptionStatus: 'active'
+        }
+      });
+      
+      logger.info(`Checkout completed for user ${userId}, plan ${planId}`);
+    } catch (error) {
+      logger.error('Handle checkout complete error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new SubscriptionService();
