@@ -118,11 +118,13 @@ class SubscriptionController {
     try {
       const { planId, successUrl, cancelUrl } = req.body;
       
+      // Use web URLs that will keep user in Safari until payment is complete
+      const baseUrl = process.env.BASE_URL || 'https://smartline-api-pn16.onrender.com';
       const session = await subscriptionService.createCheckoutSession(
         req.userId,
         planId,
-        successUrl || 'smartlineai://subscription/success',
-        cancelUrl || 'smartlineai://subscription/cancel'
+        successUrl || `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl || `${baseUrl}/payment-cancelled`
       );
       
       res.json({
