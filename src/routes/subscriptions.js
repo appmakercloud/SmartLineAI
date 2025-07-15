@@ -42,6 +42,11 @@ router.post('/payment-intent', [
 // Create setup intent (for saving payment methods)
 router.post('/setup-intent', subscriptionController.createSetupIntent);
 
+// Change plan (upgrade/downgrade)
+router.post('/change-plan', [
+  body('planId').isIn(['starter', 'professional', 'business', 'enterprise']).withMessage('Invalid plan')
+], subscriptionController.changePlan);
+
 // Cancel subscription
 router.post('/cancel', subscriptionController.cancelSubscription);
 

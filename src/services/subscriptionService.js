@@ -358,6 +358,96 @@ class SubscriptionService {
     }
   }
 
+  // Change subscription plan (upgrade/downgrade)
+  async changePlan(userId, newPlanId) {
+    const currentSubscription = await this.getCurrentSubscription(userId);
+    if (!currentSubscription) {
+      throw new Error('No active subscription found');
+    }
+
+    // Don't allow changing to the same plan
+    if (currentSubscription.planId === newPlanId) {
+      throw new Error('Already subscribed to this plan');
+    }
+
+    const newPlan = await this.getPlan(newPlanId);
+    if (!newPlan) {
+      throw new Error('Invalid plan');
+    }
+
+    try {
+      // For test mode or when Stripe is bypassed
+      if (process.env.BYPASS_STRIPE === 'true' || !currentSubscription.stripeSubscriptionId) {
+        const updatedSubscription = await prisma.userSubscription.update({
+          where: { id: currentSubscription.id },
+          data: {
+            planId: newPlanId,
+            updatedAt: new Date()
+          },
+          include: {
+            plan: true
+          }
+        });
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: { subscription: newPlanId }
+        });
+
+        logger.info(`User ${userId} changed plan from ${currentSubscription.planId} to ${newPlanId}`);
+        return updatedSubscription;
+      }
+
+      // For Stripe integration
+      const stripePriceId = stripeConfig.plans[newPlanId]?.priceId;
+      if (!stripePriceId) {
+        throw new Error('Stripe price ID not configured for this plan');
+      }
+
+      // Get the current Stripe subscription
+      const stripeSubscription = await stripe.subscriptions.retrieve(currentSubscription.stripeSubscriptionId);
+      
+      // Update the subscription with the new price
+      const updatedStripeSubscription = await stripe.subscriptions.update(
+        currentSubscription.stripeSubscriptionId,
+        {
+          items: [{
+            id: stripeSubscription.items.data[0].id,
+            price: stripePriceId
+          }],
+          proration_behavior: 'always_invoice' // This will charge/credit the difference immediately
+        }
+      );
+
+      // Update local database
+      const updatedSubscription = await prisma.userSubscription.update({
+        where: { id: currentSubscription.id },
+        data: {
+          planId: newPlanId,
+          stripePriceId: stripePriceId,
+          updatedAt: new Date()
+        },
+        include: {
+          plan: true
+        }
+      });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          subscription: newPlanId,
+          stripePriceId: stripePriceId
+        }
+      });
+
+      logger.info(`User ${userId} changed plan from ${currentSubscription.planId} to ${newPlanId} via Stripe`);
+      return updatedSubscription;
+    } catch (error) {
+      logger.error('Change plan error:', error);
+      throw error;
+    }
+  }
+
   // Cancel subscription
   async cancelSubscription(userId) {
     const subscription = await this.getCurrentSubscription(userId);
@@ -374,16 +464,20 @@ class SubscriptionService {
       }
 
       // Update local record
+      const cancelledAt = new Date();
       await prisma.userSubscription.update({
         where: { id: subscription.id },
         data: {
           status: 'cancelled',
-          cancelledAt: new Date()
+          cancelledAt: cancelledAt
         }
       });
 
       logger.info(`Cancelled subscription for user ${userId}`);
-      return { message: 'Subscription cancelled' };
+      return { 
+        message: 'Subscription cancelled',
+        cancelledAt: cancelledAt
+      };
     } catch (error) {
       logger.error('Cancel subscription error:', error);
       throw error;

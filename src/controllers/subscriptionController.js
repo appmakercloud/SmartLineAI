@@ -91,6 +91,29 @@ class SubscriptionController {
     }
   }
 
+  // Change subscription plan (upgrade/downgrade)
+  async changePlan(req, res) {
+    try {
+      const { planId } = req.body;
+      
+      const subscription = await subscriptionService.changePlan(
+        req.userId,
+        planId
+      );
+      
+      res.json({
+        message: 'Subscription plan changed successfully',
+        subscription
+      });
+    } catch (error) {
+      logger.error('Change plan error:', error);
+      res.status(500).json({ 
+        error: 'Failed to change plan',
+        message: error.message
+      });
+    }
+  }
+
   // Cancel subscription
   async cancelSubscription(req, res) {
     try {
