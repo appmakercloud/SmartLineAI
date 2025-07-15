@@ -102,8 +102,8 @@ class TwilioWebhookController {
         data: { status: 'answered' }
       });
       
+      // Return empty TwiML to continue the call
       const twiml = new twilio.twiml.VoiceResponse();
-      twiml.say('Call connected.');
       
       res.type('text/xml').send(twiml.toString());
     } catch (error) {
@@ -317,11 +317,16 @@ class TwilioWebhookController {
       
       // For outgoing calls from the iOS app
       if (To && To !== From && Direction === 'outbound-api') {
+        // Simply dial the number without any additional TwiML
+        // The Twilio Voice SDK will handle the call audio
         const dial = twiml.dial({
           callerId: From,
-          timeout: 30,
+          timeout: 60,
           record: 'record-from-answer-dual',
-          recordingStatusCallback: `${process.env.BASE_URL}/webhooks/twilio/recording-status`
+          recordingStatusCallback: `${process.env.BASE_URL}/webhooks/twilio/recording-status`,
+          recordingStatusCallbackEvent: 'in-progress completed',
+          statusCallback: `${process.env.BASE_URL}/webhooks/twilio/voice-sdk-status`,
+          statusCallbackEvent: 'initiated ringing answered completed'
         });
         
         dial.number(To);
