@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
-const plivoService = require('../services/plivoService');
+const voipService = require('../services/voipService');
 const { logger } = require('../middleware/logging');
 
 const prisma = new PrismaClient();
@@ -42,8 +42,9 @@ class MessagesController {
         });
       }
       
-      // Send message
-      const messages = await plivoService.sendSMS(from, to, text, req.userId);
+      // Send message using VoIP service abstraction
+      const provider = virtualNumber.provider || process.env.DEFAULT_VOIP_PROVIDER || 'twilio';
+      const messages = await voipService.sendSMS(from, to, text, req.userId, provider);
       
       // Deduct credits for free users
       if (user.subscription === 'free') {

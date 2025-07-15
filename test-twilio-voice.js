@@ -5,7 +5,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'https://smartline-api-pn16.onrender.com';
 
 async function testTwilioVoiceSetup() {
   console.log('🔍 Testing Twilio Voice SDK Setup...\n');

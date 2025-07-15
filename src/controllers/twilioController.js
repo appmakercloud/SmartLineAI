@@ -20,6 +20,14 @@ class TwilioController {
         });
       }
 
+      // Check if TwiML App is configured
+      if (!process.env.TWILIO_TWIML_APP_SID) {
+        logger.error('Twilio TwiML App SID not configured');
+        return res.status(503).json({ 
+          error: 'Twilio TwiML App not configured. Please set TWILIO_TWIML_APP_SID in environment variables.' 
+        });
+      }
+
       // Create access token
       const AccessToken = twilio.jwt.AccessToken;
       const VoiceGrant = AccessToken.VoiceGrant;
