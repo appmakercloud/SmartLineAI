@@ -282,6 +282,29 @@ class SubscriptionService {
     }
 
     try {
+      // Handle test payment methods
+      if (paymentMethodId && (paymentMethodId === 'pm_card_visa' || paymentMethodId.startsWith('pm_card_'))) {
+        logger.info('Creating test payment method from token for upgrade');
+        try {
+          const newPaymentMethod = await stripe.paymentMethods.create({
+            type: 'card',
+            card: {
+              token: 'tok_visa'
+            }
+          });
+          paymentMethodId = newPaymentMethod.id;
+          logger.info('Created test payment method for upgrade:', paymentMethodId);
+          
+          // Attach to customer
+          await stripe.paymentMethods.attach(paymentMethodId, {
+            customer: user.stripeCustomerId
+          });
+        } catch (pmError) {
+          logger.error('Failed to create test payment method for upgrade:', pmError);
+          throw pmError;
+        }
+      }
+      
       // Update payment method if provided
       if (paymentMethodId && currentSubscription.stripeSubscriptionId) {
         await stripe.subscriptions.update(currentSubscription.stripeSubscriptionId, {
