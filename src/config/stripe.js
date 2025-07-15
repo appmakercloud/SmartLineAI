@@ -3,24 +3,24 @@ const stripeConfig = {
   // Map local plan IDs to Stripe product and price IDs
   plans: {
     free: {
-      productId: 'prod_SfzJAUQNqkiB6A',
-      priceId: process.env.STRIPE_PRICE_FREE || 'price_1RkdKRAiU9FS6JYnXLCLcvay'
+      productId: 'prod_Sg35Z4AfaVPtfE',
+      priceId: process.env.STRIPE_PRICE_FREE || 'price_1RkgywPAlYPOyo6SuznmPqId'
     },
     starter: {
-      productId: 'prod_SfzM0Is3Ih667I',
-      priceId: process.env.STRIPE_PRICE_ID_STARTER || 'price_1RkdO7AiU9FS6JYnFk3h7jud'
+      productId: 'prod_Sg366EQwqorvx9',
+      priceId: process.env.STRIPE_PRICE_ID_STARTER || 'price_1RkgzqPAlYPOyo6SWeOw7QbX'
     },
     professional: {
-      productId: 'prod_SfzOf9cmSnqb9j',
-      priceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL || 'price_1RkdPqAiU9FS6JYnXtq6XyZ5'
+      productId: 'prod_Sg37ITAePdnELv',
+      priceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL || 'price_1Rkh17PAlYPOyo6SSjubU0dG'
     },
     business: {
-      productId: 'prod_SfzQFQ3a5HtkSW',
-      priceId: process.env.STRIPE_PRICE_ID_BUSINESS || 'price_1RkdRRAiU9FS6JYn4rdYBBUW'
+      productId: 'prod_Sg38E0mcZ3WcB5',
+      priceId: process.env.STRIPE_PRICE_ID_BUSINESS || 'price_1Rkh1pPAlYPOyo6S6CJ1kJrE'
     },
     enterprise: {
-      productId: 'prod_SfzRZU37WDjZMa',
-      priceId: process.env.STRIPE_PRICE_ENTERPRISE || 'price_1RkdScAiU9FS6JYnQEHex3rN'
+      productId: 'prod_Sg38KFqwVoHrr4',
+      priceId: process.env.STRIPE_PRICE_ENTERPRISE || 'price_1Rkh2ePAlYPOyo6SewVz8S0I'
     }
   }
 };
