@@ -112,7 +112,8 @@ class SubscriptionService {
     // Check for existing active subscription
     const existingSubscription = await this.getCurrentSubscription(userId);
     if (existingSubscription) {
-      throw new Error('User already has an active subscription');
+      // Handle as an upgrade/downgrade
+      return await this.upgradeSubscription(userId, planId, paymentMethodId);
     }
 
     try {
@@ -211,6 +212,113 @@ class SubscriptionService {
       return subscription;
     } catch (error) {
       logger.error('Subscription error:', error);
+      throw error;
+    }
+  }
+
+  // Upgrade/Downgrade subscription
+  async upgradeSubscription(userId, newPlanId, paymentMethodId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const currentSubscription = await this.getCurrentSubscription(userId);
+    if (!currentSubscription) {
+      throw new Error('No active subscription found');
+    }
+
+    // Get the new plan details
+    const newPlan = await prisma.subscriptionPlan.findUnique({
+      where: { id: newPlanId }
+    });
+
+    if (!newPlan) {
+      throw new Error('Invalid plan');
+    }
+
+    const stripeConfig = stripeConfigFile.plans[newPlanId];
+    if (!stripeConfig) {
+      throw new Error('Plan not configured in Stripe');
+    }
+
+    // Temporary bypass for testing without Stripe products
+    if (process.env.BYPASS_STRIPE === 'true') {
+      logger.info('Bypassing Stripe for upgrade testing');
+      
+      // Update the existing subscription
+      const updatedSubscription = await prisma.userSubscription.update({
+        where: { id: currentSubscription.id },
+        data: {
+          planId: newPlanId,
+          stripePriceId: `price_test_${newPlanId}`,
+          updatedAt: new Date()
+        }
+      });
+      
+      // Update user record
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          subscription: newPlanId,
+          stripePriceId: `price_test_${newPlanId}`
+        }
+      });
+      
+      logger.info(`User ${userId} upgraded to ${newPlanId} plan (test mode)`);
+      return updatedSubscription;
+    }
+
+    try {
+      // Update payment method if provided
+      if (paymentMethodId && currentSubscription.stripeSubscriptionId) {
+        await stripe.subscriptions.update(currentSubscription.stripeSubscriptionId, {
+          default_payment_method: paymentMethodId
+        });
+      }
+
+      // Update Stripe subscription
+      if (currentSubscription.stripeSubscriptionId) {
+        const stripeSubscription = await stripe.subscriptions.update(
+          currentSubscription.stripeSubscriptionId,
+          {
+            items: [{
+              id: (await stripe.subscriptions.retrieve(currentSubscription.stripeSubscriptionId)).items.data[0].id,
+              price: stripeConfig.priceId
+            }],
+            proration_behavior: 'create_prorations'
+          }
+        );
+
+        // Update local records
+        const updatedSubscription = await prisma.userSubscription.update({
+          where: { id: currentSubscription.id },
+          data: {
+            planId: newPlanId,
+            stripePriceId: stripeConfig.priceId,
+            updatedAt: new Date()
+          }
+        });
+
+        // Update user subscription status
+        await prisma.user.update({
+          where: { id: userId },
+          data: { 
+            subscription: newPlanId,
+            stripePriceId: stripeConfig.priceId
+          }
+        });
+
+        logger.info(`User ${userId} upgraded from ${currentSubscription.planId} to ${newPlanId}`);
+        return updatedSubscription;
+      } else {
+        throw new Error('No Stripe subscription ID found');
+      }
+    } catch (error) {
+      logger.error('Upgrade subscription error:', error);
       throw error;
     }
   }
